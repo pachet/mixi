@@ -1,7 +1,7 @@
 {
 	"name": "mixi",
 	"description": "Easy compositional inheritance via mixins",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"repository": "https://github.com/pachet/mixi",
 	"license": "MIT"
 }

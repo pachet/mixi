@@ -23,19 +23,23 @@ function dispatch(key, args) {
 
 		var advanced = false;
 
-		self.continue = function mixiContinue() {
+		function mixiContinue() {
 			if (!advanced) {
 				advanced = true;
 				advance();
 			}
-		};
+		}
+
+		self.continue = mixiContinue;
 
 		result = methods[index].apply(self, args);
 
-		self.continue();
+		mixiContinue();
 	}
 
 	advance();
+
+	this.continue = null;
 
 	return result || this;
 }
@@ -84,12 +88,75 @@ function combine(target, source) {
 	return result;
 }
 
+function cleanConstructors(set) {
+	var index = set.length;
+
+	while (index--) {
+		if (set[index].is_mixi_constructor) {
+			set.splice(index, 1);
+			continue;
+		}
+	}
+}
+
+function mergeMethods(prototype, target, source) {
+	var key,
+		source_set,
+		target_set,
+		index,
+		result,
+		subindex;
+
+	for (key in source) {
+		source_set = source[key];
+		target_set = target[key];
+
+		if (!target_set) {
+			target[key] = source_set.slice(0);
+			prototype[key] = createAlias(key);
+			continue;
+		}
+
+		index = source_set.length;
+		result = [ ];
+
+		while (index--) {
+			if (target_set.indexOf(source_set[index]) !== -1) {
+				continue;
+			}
+
+			result.unshift(source_set[index]);
+		}
+
+		target[key] = result.concat(target_set);
+	}
+}
+
+function createAlias(key) {
+	return function abstracted() {
+		return this.mixi(key, arguments);
+	};
+}
+
 function merge(prototype, methods, source, constructor) {
 	var key,
 		value,
 		target;
 
+	if (source.mixi_methods) {
+		mergeMethods(prototype, methods, source.mixi_methods);
+	}
+
 	for (key in source) {
+
+		if (key === 'mixi_methods') {
+			continue;
+		}
+
+		if (source.mixi_methods && source.mixi_methods[key]) {
+			continue;
+		}
+
 		value = source[key];
 		target = prototype[key];
 
@@ -105,25 +172,30 @@ function merge(prototype, methods, source, constructor) {
 			continue;
 		}
 
-		if (typeof prototype[key] === 'function') {
+		if (typeof prototype[key] === 'function' && prototype[key] !== value) {
 			if (!methods[key]) {
 				methods[key] = [prototype[key]];
-				prototype[key] = (function closure(key) {
-					return function abstracted() {
-						dispatch.call(this, key, arguments);
-					};
-				})(key);
+				prototype[key] = createAlias(key);
 			}
 
-			methods[key].push(value);
+			if (methods[key].indexOf(value) === -1) {
+				methods[key].push(value);
+			}
 		} else {
 			prototype[key] = value;
 		}
 	}
 
-	if (constructor) {
+	if (constructor && methods.construct.indexOf(constructor) === -1) {
 		methods.construct.push(constructor);
 	}
+}
+
+function mixiExtend() {
+	var args = Array.prototype.slice.call(arguments);
+	args.unshift(this);
+
+	return mixi.apply(this, args);
 }
 
 function mixi() {
@@ -147,12 +219,20 @@ function mixi() {
 
 	prototype.mixi = dispatch;
 	prototype.break = mixiBreak;
+
+	if (methods.construct) {
+		cleanConstructors(methods.construct);
+	}
+
 	prototype.mixi_methods = methods;
 
 	function MixiConstructor() {
 		return this.mixi('construct', toArray(arguments));
 	}
 
+	MixiConstructor.mixi = MixiConstructor.extend = mixiExtend;
+
+	MixiConstructor.is_mixi_constructor = true;
 	MixiConstructor.prototype = prototype;
 
 	return MixiConstructor;
