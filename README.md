@@ -1,3 +1,5 @@
+### Overview
+
 **mixi** is a library that enables the easy composition of constructors from other constructors/objects, like so:
 
 `````js
@@ -26,7 +28,7 @@ If you pass in objects, those objects are merged into the result, as well.
 
 However, interesting things happen if you pass in objects that share the same key:
 
-###Functions
+### Functions
 If two or more supplied arguments share a function property, **mixi** will create a new wrapper function that calls each shared property sequentially, in the opposite order from how they were passed in.
 `````js
 var foo = {
@@ -50,7 +52,7 @@ instance.fn();
 // "last"
 `````
 
-###Objects
+### Objects
 If two or more supplied arguments share an object property, **mixi** will merge these objects into a new object and assign it as the value of the shared key.
 `````js
 var foo = {
@@ -75,7 +77,7 @@ console.log(instance.object);
 // "{ x: 3, y: 2, z: 4 }"
 `````
 
-###Arrays
+### Arrays
 If two or more supplied arguments share an array property, **mixi** will flatten these arrays and store the flattened array as the value of the shared key.
 `````js
 var foo = {
@@ -96,7 +98,7 @@ console.log(instance.array);
 
 **mixi** has a couple more tricks for dealing with invocation order of merged functions:
 
-###.break()
+### .break()
 When a merged function is being executed, a `.break` function property exists on the execution context. Calling `.break()` will stop any remaining sibling functions for the current key from being executed:
 `````js
 var foo = {
@@ -121,7 +123,7 @@ instance.baz();
 // "first"
 `````
 
-###.continue()
+### .continue()
 When a merged function is being executed, a `.continue` function property exists on the execution context. Calling `.continue()` will immediately advance to the next wrapped sibling function for the current key:
 `````js
 var foo = {
